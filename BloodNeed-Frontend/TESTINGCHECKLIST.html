@@ -1,0 +1,82 @@
+<!-- Add this to all pages for mobile testing -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+
+<!-- Mobile Navigation Toggle -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Hamburger menu
+        const hamburger = document.getElementById('hamburger');
+        const navLinks = document.getElementById('navbarLinks');
+        
+        if (hamburger && navLinks) {
+            hamburger.addEventListener('click', function() {
+                navLinks.classList.toggle('active');
+                this.classList.toggle('active');
+            });
+        }
+        
+        // Close menu on link click (mobile)
+        document.querySelectorAll('.navbar-links a').forEach(link => {
+            link.addEventListener('click', function() {
+                if (window.innerWidth <= 768) {
+                    navLinks.classList.remove('active');
+                    if (hamburger) hamburger.classList.remove('active');
+                }
+            });
+        });
+        
+        // Close menu on outside click
+        document.addEventListener('click', function(e) {
+            if (window.innerWidth <= 768) {
+                const nav = document.querySelector('.navbar');
+                if (nav && !nav.contains(e.target)) {
+                    navLinks.classList.remove('active');
+                    if (hamburger) hamburger.classList.remove('active');
+                }
+            }
+        });
+    });
+</script>
+
+<!-- Mobile Responsive Test Button -->
+<style>
+    .test-badge {
+        position: fixed;
+        bottom: 10px;
+        right: 10px;
+        background: rgba(0,0,0,0.7);
+        color: white;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 10px;
+        z-index: 9999;
+        pointer-events: none;
+        display: none;
+    }
+    
+    /* Show test badge on mobile */
+    @media (max-width: 768px) {
+        .test-badge {
+            display: block;
+        }
+    }
+</style>
+
+<div class="test-badge" id="deviceType">Desktop</div>
+
+<script>
+    // Show device type for testing
+    function updateDeviceBadge() {
+        const badge = document.getElementById('deviceType');
+        if (!badge) return;
+        
+        const width = window.innerWidth;
+        if (width <= 480) badge.textContent = '📱 Mobile';
+        else if (width <= 768) badge.textContent = '📱 Tablet';
+        else if (width <= 1024) badge.textContent = '💻 Small Desktop';
+        else badge.textContent = '🖥️ Desktop';
+    }
+    
+    window.addEventListener('resize', updateDeviceBadge);
+    document.addEventListener('DOMContentLoaded', updateDeviceBadge);
+</script>

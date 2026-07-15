@@ -1,0 +1,5 @@
+BloodNeed-Backend/venv/ 
+BloodNeed-Backend/.env 
+__pycache__/ 
+.vscode/ 
+node_modules/ 

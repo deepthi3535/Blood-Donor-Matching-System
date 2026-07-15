@@ -1,0 +1,30 @@
+/* MOBILE FIRST */
+@media (max-width: 576px) {
+    .navbar {
+        padding: 0.5rem 1rem;
+    }
+    
+    .hero {
+        padding: 2rem 1rem;
+    }
+    
+    .hero h1 {
+        font-size: 1.8rem;
+    }
+    
+    .card {
+        margin-bottom: 1rem;
+    }
+    
+    .btn-emergency {
+        width: 100%;
+        padding: 0.8rem;
+    }
+}
+
+/* TABLET */
+@media (min-width: 577px) and (max-width: 992px) {
+    .container {
+        max-width: 90%;
+    }
+}

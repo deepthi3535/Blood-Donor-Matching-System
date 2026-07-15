@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>Donor Matching - Blood Need</title>
+    
+    <link rel="stylesheet" href="../src/assets/css/style.css">
+    <link rel="stylesheet" href="../src/assets/css/responsive.css">
+    <link rel="stylesheet" href="../src/assets/css/components.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    
+    <!-- ====== LEAFET CSS - FIXED CDN ====== -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
+          crossorigin=""/>
+    
+    <style>
+        /* Map styles */
+        .map-container {
+            background: var(--white);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+        
+        .map-container .map-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .map-container .map-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+        }
+        
+        .map-container .map-header h3 i {
+            color: var(--primary-red);
+        }
+        
+        .map-legend {
+            display: flex;
+            gap: 15px;
+            font-size: 0.85rem;
+        }
+        
+        .map-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .map-legend-item .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        
+        .map-legend-item .dot.you { background: #007BFF; }
+        .map-legend-item .dot.donor { background: #DC3545; }
+        
+        /* ====== MAP CONTAINER - FIXED HEIGHT ====== */
+        #donorMap {
+            height: 450px !important;
+            width: 100% !important;
+            background: #e8e8e8;
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Fallback if map doesn't load */
+        #donorMap:empty::before {
+            content: "🗺️ Loading map...";
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            font-size: 1.2rem;
+            color: #6C757D;
+        }
+        
+        .map-controls {
+            padding: 0.8rem 1.5rem;
+            border-top: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .map-controls .location-status {
+            font-size: 0.9rem;
+            color: var(--secondary-gray);
+        }
+        
+        .map-controls .location-status i {
+            color: var(--success-green);
+        }
+        
+        .map-popup-donor {
+            padding: 4px;
+            min-width: 160px;
+        }
+        
+        .map-popup-donor strong {
+            display: block;
+            font-size: 1rem;
+        }
+        
+        .map-popup-donor .popup-details {
+            font-size: 0.85rem;
+            color: var(--secondary-gray);
+            margin: 2px 0;
+        }
+        
+        .map-popup-donor .popup-actions {
+            margin-top: 6px;
+            display: flex;
+            gap: 5px;
+        }
+        
+        .map-popup-donor .popup-actions button {
+            padding: 4px 14px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .map-popup-donor .popup-actions .btn-accept {
+            background: #28A745;
+            color: white;
+        }
+        
+        .map-popup-donor .popup-actions .btn-accept:hover {
+            background: #1e7e34;
+        }
+        
+        .map-popup-donor .popup-actions .btn-reject {
+            background: #6C757D;
+            color: white;
+        }
+        
+        .map-popup-donor .popup-actions .btn-reject:hover {
+            background: #5a6268;
+        }
+        
+        @media (max-width: 768px) {
+            #donorMap {
+                height: 300px !important;
+            }
+            
+            .map-legend {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            
+            .map-controls {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+        
+        /* Dark theme support for map */
+        [data-theme="dark"] #donorMap {
+            background: #1a1a2e;
+        }
+        
+        /* Leaflet dark theme override */
+        [data-theme="dark"] .leaflet-tile-pane {
+            filter: brightness(0.8) invert(1) hue-rotate(180deg);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ==================== NAVIGATION ==================== -->
+    <nav class="navbar dashboard-nav">
+        <div class="container">
+            <div class="navbar-brand">
+                <a href="../index.html">
+                    <span class="blood-icon">🩸</span>
+                    Blood <span class="highlight">Need</span>
+                </a>
+            </div>
+            
+            <div class="navbar-links" id="navbarLinks">
+                <a href="dashboard.html">Dashboard</a>
+                <a href="request-blood.html">Request</a>
+                <a href="donor-matching.html" class="active">Matching</a>
+                <button id="themeToggle" class="theme-toggle" title="Toggle Theme">🌙</button>
+            </div>
+            
+            <button class="hamburger" id="hamburger">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- ==================== MATCHING SECTION ==================== -->
+    <section class="matching-section">
+        <div class="container">
+            <div class="page-header">
+                <h1><i class="fas fa-search-location"></i> Donor Matching</h1>
+                <p>AI-powered matching showing best donors for your request</p>
+                <div class="request-summary" id="requestSummary">
+                    <span class="request-badge">Loading...</span>
+                </div>
+            </div>
+
+            <!-- Matching Stats -->
+            <div class="matching-stats">
+                <div class="stat-item">
+                    <span class="stat-number" id="matchingCount">8</span>
+                    <span class="stat-label">Donors Found</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">5.2</span>
+                    <span class="stat-label">Avg Response (min)</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">92%</span>
+                    <span class="stat-label">Match Accuracy</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">3</span>
+                    <span class="stat-label">Active Responses</span>
+                </div>
+            </div>
+
+            <!-- ==================== MAP CONTAINER ==================== -->
+            <div class="map-container">
+                <div class="map-header">
+                    <h3><i class="fas fa-map-marked-alt"></i> Donor Location Map</h3>
+                    <div class="map-legend">
+                        <span class="map-legend-item">
+                            <span class="dot you"></span> You
+                        </span>
+                        <span class="map-legend-item">
+                            <span class="dot donor"></span> Donors
+                        </span>
+                    </div>
+                </div>
+                
+                <!-- ====== MAP DIV - FIXED ====== -->
+                <div id="donorMap"></div>
+                
+                <div class="map-controls">
+                    <span class="location-status" id="locationStatus">
+                        <i class="fas fa-circle" style="color:#FFC107;"></i> Getting location...
+                    </span>
+                    <div>
+                        <button class="btn-secondary btn-sm" onclick="zoomToUser()">
+                            <i class="fas fa-crosshairs"></i> My Location
+                        </button>
+                        <button class="btn-secondary btn-sm" onclick="resetMapView()">
+                            <i class="fas fa-home"></i> Reset View
+                        </button>
+                        <button class="btn-secondary btn-sm" onclick="refreshDonorsFromMap()">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Donor List -->
+            <div class="donor-list">
+                <div class="list-header">
+                    <h3>Top Matched Donors</h3>
+                    <div class="filter-options">
+                        <button class="filter-btn active" data-filter="all">All</button>
+                        <button class="filter-btn" data-filter="nearest">Nearest</button>
+                        <button class="filter-btn" data-filter="highest">Highest Rated</button>
+                        <button class="filter-btn" data-filter="available">Most Available</button>
+                    </div>
+                </div>
+                <div id="donorListContainer">
+                    <div class="loading-state" style="text-align:center;padding:2rem;color:#6C757D;">
+                        <i class="fas fa-spinner fa-spin"></i> Finding matching donors...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Auto-Select Indicator -->
+            <div class="auto-select-indicator">
+                <div class="auto-select-content">
+                    <i class="fas fa-robot"></i>
+                    <div>
+                        <h4>Auto-Selection Active</h4>
+                        <p>If no donor responds in <strong>3 minutes</strong>, next donor will be notified automatically.</p>
+                    </div>
+                </div>
+                <div class="timer" id="autoTimer">2:40</div>
+            </div>
+
+            <!-- Load More -->
+            <div style="text-align: center; margin-top: 1.5rem;">
+                <button class="btn-secondary" onclick="loadMoreDonors()">
+                    <i class="fas fa-sync"></i> Load More Donors
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== JAVASCRIPT ==================== -->
+    <!-- ====== LEAFET JS - FIXED CDN ====== -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
+            crossorigin=""></script>
+    
+    <!-- Custom JS -->
+    <script src="../src/assets/js/main.js"></script>
+    <script src="../src/assets/js/utils.js"></script>
+    <script src="../src/assets/js/api.js"></script>
+    <script src="../src/assets/js/interactive.js"></script>
+    
+    <script>
+        // ==================== MAP VARIABLES ====================
+        let map;
+        let userMarker;
+        let donorMarkers = [];
+        let currentUserLocation = null;
+        let matchedDonors = [];
+        let currentRequestId = null;
+        const defaultCenter = [19.0760, 72.8777];
+        
+        // Load matching data from API
+        async function loadMatchingData() {
+            if (!window.API || !window.API.api) {
+                showNotification('API not loaded. Please refresh the page.', 'error');
+                console.error('API not available:', window.API);
+                return;
+            }
+            
+            const token = window.API.api.getToken();
+            if (!token) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            try {
+                currentRequestId = localStorage.getItem('current_request_id');
+                let latestRequest = null;
+                
+                const requestsRes = await window.API.patient.getRequests();
+                if (requestsRes.success && requestsRes.data.length > 0) {
+                    latestRequest = requestsRes.data[0];
+                    if (!currentRequestId) {
+                        currentRequestId = latestRequest.request_id;
+                        localStorage.setItem('current_request_id', currentRequestId);
+                    } else {
+                        latestRequest = requestsRes.data.find(r => String(r.request_id) === String(currentRequestId)) || latestRequest;
+                    }
+                    updateRequestSummary(latestRequest);
+                }
+                
+                if (!currentRequestId) {
+                    document.getElementById('donorListContainer').innerHTML = 
+                        '<div style="text-align:center;padding:2rem;"><p>No blood request found.</p><a href="request-blood.html" class="btn-primary">Create Request</a></div>';
+                    document.getElementById('requestSummary').innerHTML = '<span class="request-badge">No active request</span>';
+                    return;
+                }
+                
+                const [findRes, rankingRes] = await Promise.all([
+                    window.API.matching.findDonors(currentRequestId),
+                    window.API.matching.getRanking(currentRequestId)
+                ]);
+                
+                if (findRes.success) {
+                    matchedDonors = findRes.data.matched_donors || [];
+                    document.getElementById('matchingCount').textContent = findRes.data.total_donors || 0;
+                    renderDonorCards(rankingRes.success ? rankingRes.data : matchedDonors);
+                    if (map && matchedDonors.length > 0) {
+                        const center = currentUserLocation || { lat: defaultCenter[0], lng: defaultCenter[1] };
+                        addDonorMarkers(center.lat, center.lng);
+                    }
+                } else {
+                    document.getElementById('donorListContainer').innerHTML = 
+                        `<div style="text-align:center;padding:2rem;color:#6C757D;">${findRes.message || 'No matching donors found'}</div>`;
+                    document.getElementById('matchingCount').textContent = '0';
+                }
+            } catch (error) {
+                if (error.status === 401) {
+                    window.location.href = 'login.html';
+                } else {
+                    document.getElementById('donorListContainer').innerHTML = 
+                        '<div style="text-align:center;padding:2rem;color:#DC3545;">Failed to load donors. Please try again.</div>';
+                }
+            }
+        }
+        
+        function updateRequestSummary(req) {
+            const summary = document.getElementById('requestSummary');
+            summary.innerHTML = `
+                <span class="request-badge">🩸 ${req.blood_group}</span>
+                <span class="request-badge">${req.units_needed} Units</span>
+                <span class="request-badge ${req.emergency_level?.toLowerCase() || 'normal'}">${req.emergency_level}</span>
+                <span class="request-badge">📍 ${req.hospital_name}</span>
+            `;
+        }
+        
+        function renderDonorCards(donors) {
+            const container = document.getElementById('donorListContainer');
+            if (!donors || donors.length === 0) {
+                container.innerHTML = '<div style="text-align:center;padding:2rem;color:#6C757D;">No matching donors found for this request.</div>';
+                return;
+            }
+            
+            container.innerHTML = donors.map((donor, index) => {
+                const rankLabel = index === 0 ? '⭐ #1' : `#${index + 1}`;
+                const prob = Math.round((donor.response_probability || 0) * 100);
+                const distance = donor.distance_km ? `${donor.distance_km.toFixed(1)} km` : 'N/A';
+                const isAvailable = donor.available !== false;
+                
+                return `
+                    <div class="donor-card ${index === 0 ? 'top-match' : ''}" data-id="${donor.donor_id}">
+                        <div class="donor-rank">${rankLabel}</div>
+                        <div class="donor-info">
+                            <div class="donor-avatar">
+                                <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(donor.name)}&background=DC3545&color=fff" alt="Donor" />
+                                <span class="online-status ${isAvailable ? 'online' : 'offline'}"></span>
+                            </div>
+                            <div class="donor-details">
+                                <h4>${donor.name}</h4>
+                                <div class="donor-meta">
+                                    <span class="blood-group">${donor.blood_group}</span>
+                                    <span class="donor-distance"><i class="fas fa-map-marker-alt"></i> ${distance}</span>
+                                    <span class="donor-rating">Score: ${(donor.ranking_score || 0).toFixed(2)}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="donor-response">
+                            <span class="response-probability">${prob}% Response Rate</span>
+                            <div class="response-actions">
+                                <button class="btn-success" onclick="acceptDonor('${donor.name}', ${donor.donor_id})">
+                                    <i class="fas fa-check"></i> Accept
+                                </button>
+                                <button class="btn-secondary" onclick="rejectDonor('${donor.name}', ${donor.donor_id})">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function refreshDonors() {
+            showNotification('Refreshing donor matches...', 'info');
+            loadMatchingData();
+        }
+
+        // ==================== INITIALIZE MAP ====================
+        function initMatchingMap() {
+            const mapContainer = document.getElementById('donorMap');
+            if (!mapContainer) {
+                console.error('Map container not found!');
+                return;
+            }
+            
+            try {
+                // Create map
+                map = L.map('donorMap', {
+                    center: defaultCenter,
+                    zoom: 13,
+                    zoomControl: true,
+                    fadeAnimation: true,
+                    zoomAnimation: true
+                });
+                
+                // Add tile layer
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors',
+                    maxZoom: 19
+                }).addTo(map);
+                
+                console.log('✅ Map initialized successfully!');
+                
+                // Update location status
+                document.getElementById('locationStatus').innerHTML = 
+                    '<i class="fas fa-circle" style="color:#FFC107;"></i> Getting your location...';
+                
+                // Try to get user location
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        position => {
+                            const lat = position.coords.latitude;
+                            const lng = position.coords.longitude;
+                            currentUserLocation = { lat, lng };
+                            
+                            map.setView([lat, lng], 14);
+                            addUserMarker(lat, lng);
+                            addDonorMarkers(lat, lng);
+                            
+                            document.getElementById('locationStatus').innerHTML = 
+                                `<i class="fas fa-circle" style="color:#28A745;"></i> Location found: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+                        },
+                        error => {
+                            console.warn('Location error:', error.message);
+                            document.getElementById('locationStatus').innerHTML = 
+                                `<i class="fas fa-circle" style="color:#DC3545;"></i> Using default location`;
+                            addDonorMarkers(defaultCenter[0], defaultCenter[1]);
+                        }
+                    );
+                } else {
+                    document.getElementById('locationStatus').innerHTML = 
+                        '<i class="fas fa-circle" style="color:#DC3545;"></i> Geolocation not supported';
+                    addDonorMarkers(defaultCenter[0], defaultCenter[1]);
+                }
+                
+                // Handle resize
+                window.addEventListener('resize', function() {
+                    setTimeout(() => {
+                        if (map) map.invalidateSize();
+                    }, 300);
+                });
+                
+            } catch (error) {
+                console.error('Map initialization error:', error);
+                document.getElementById('donorMap').innerHTML = 
+                    '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#6C757D;padding:20px;text-align:center;">' +
+                    '⚠️ Map failed to load. Please check your internet connection.<br>' +
+                    '<button onclick="initMatchingMap()" style="margin-top:10px;padding:8px 20px;background:#DC3545;color:white;border:none;border-radius:6px;cursor:pointer;">Retry</button>' +
+                    '</div>';
+            }
+        }
+
+        // ==================== ADD USER MARKER ====================
+        function addUserMarker(lat, lng) {
+            if (userMarker) {
+                map.removeLayer(userMarker);
+            }
+            
+            const userIcon = L.divIcon({
+                className: 'user-marker',
+                html: `<div style="background:#007BFF;width:20px;height:20px;border-radius:50%;border:3px solid white;box-shadow:0 0 20px rgba(0,123,255,0.5);"></div>`,
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            });
+            
+            userMarker = L.marker([lat, lng], { icon: userIcon })
+                .addTo(map)
+                .bindPopup('<strong>📍 You are here</strong>');
+        }
+
+        // ==================== ADD DONOR MARKERS ====================
+        function addDonorMarkers(userLat, userLng) {
+            donorMarkers.forEach(marker => {
+                if (map) map.removeLayer(marker);
+            });
+            donorMarkers = [];
+            
+            matchedDonors.forEach((donor, index) => {
+                const lat = defaultCenter[0] + (Math.random() - 0.5) * 0.05;
+                const lng = defaultCenter[1] + (Math.random() - 0.5) * 0.05;
+                const distance = donor.distance_km ? `${donor.distance_km.toFixed(1)} km` : 'N/A';
+                const isAvailable = donor.available !== false;
+                const iconColor = isAvailable ? '#28A745' : '#6C757D';
+                
+                const donorIcon = L.divIcon({
+                    className: 'donor-marker',
+                    html: `<div style="background:${iconColor};width:18px;height:18px;border-radius:50%;border:3px solid white;box-shadow:0 0 15px rgba(220,53,69,0.3);display:flex;align-items:center;justify-content:center;font-size:8px;color:white;font-weight:700;">${index + 1}</div>`,
+                    iconSize: [18, 18],
+                    iconAnchor: [9, 9]
+                });
+                
+                const marker = L.marker([lat, lng], { icon: donorIcon })
+                    .addTo(map)
+                    .bindPopup(`
+                        <div class="map-popup-donor">
+                            <strong>${donor.name}</strong>
+                            <div class="popup-details">🩸 ${donor.blood_group} • ${distance}</div>
+                            <div class="popup-details">${isAvailable ? '🟢 Available' : '⚪ Unavailable'}</div>
+                            <div class="popup-actions">
+                                <button class="btn-accept" onclick="acceptDonor('${donor.name}', ${donor.donor_id})">Accept</button>
+                                <button class="btn-reject" onclick="rejectDonor('${donor.name}', ${donor.donor_id})">Reject</button>
+                            </div>
+                        </div>
+                    `);
+                
+                donorMarkers.push(marker);
+            });
+        }
+
+        // ==================== MAP CONTROLS ====================
+        function zoomToUser() {
+            if (currentUserLocation) {
+                map.setView([currentUserLocation.lat, currentUserLocation.lng], 15);
+                showNotification('📍 Centered on your location', 'info');
+            } else {
+                showNotification('📍 Location not available. Please enable GPS.', 'warning');
+            }
+        }
+
+        function resetMapView() {
+            map.setView(defaultCenter, 13);
+            showNotification('🗺️ Map view reset', 'info');
+        }
+
+        function refreshDonorsFromMap() {
+            showNotification('Refreshing donor locations...', 'info');
+            if (currentUserLocation) {
+                addDonorMarkers(currentUserLocation.lat, currentUserLocation.lng);
+            } else {
+                addDonorMarkers(defaultCenter[0], defaultCenter[1]);
+            }
+            loadMatchingData();
+            showNotification('Donors refreshed!', 'success');
+        }
+
+        // ==================== DONOR ACTIONS ====================
+        function acceptDonor(name, id) {
+            showNotification(`✅ ${name} has been notified! OTP sent.`, 'success');
+            
+            // Find and highlight the donor card
+            document.querySelectorAll('.donor-card').forEach(card => {
+                if (card.dataset.id == id) {
+                    card.style.borderColor = '#28A745';
+                    card.style.background = 'rgba(40,167,69,0.05)';
+                }
+            });
+        }
+
+        function rejectDonor(name, id) {
+            showNotification(`⏳ ${name} rejected. Searching for next donor...`, 'warning');
+            
+            // Update donor card
+            document.querySelectorAll('.donor-card').forEach(card => {
+                if (card.dataset.id == id) {
+                    card.style.opacity = '0.5';
+                    card.style.borderColor = '#DC3545';
+                }
+            });
+        }
+
+        // ==================== FILTER DONORS ====================
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                const filter = this.dataset.filter;
+                const cards = document.querySelectorAll('.donor-card');
+                
+                cards.forEach((card, index) => {
+                    if (filter === 'all') {
+                        card.style.display = 'flex';
+                    } else if (filter === 'nearest') {
+                        card.style.display = index < 3 ? 'flex' : 'none';
+                    } else if (filter === 'highest') {
+                        card.style.display = index < 3 ? 'flex' : 'none';
+                    } else if (filter === 'available') {
+                        const status = card.querySelector('.online-status');
+                        card.style.display = status && status.classList.contains('online') ? 'flex' : 'none';
+                    }
+                });
+                
+                showNotification(`Filter: ${this.textContent}`, 'info');
+            });
+        });
+
+        // ==================== LOAD MORE DONORS ====================
+        function loadMoreDonors() {
+            showNotification('🔍 Loading more donors...', 'info');
+            setTimeout(() => {
+                showNotification('✅ 3 more donors found!', 'success');
+            }, 1500);
+        }
+
+        // ==================== AUTO TIMER ====================
+        let timeLeft = 160; // 2:40 in seconds
+        const timerElement = document.getElementById('autoTimer');
+        
+        setInterval(() => {
+            timeLeft--;
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            if (timerElement) {
+                timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            }
+            
+            if (timeLeft <= 0) {
+                timerElement.textContent = '0:00';
+                showNotification('⏰ No response received. Auto-selecting next donor...', 'warning');
+                timeLeft = 180; // Reset to 3 minutes
+            }
+        }, 1000);
+
+        // ==================== HAMBURGER MENU ====================
+        document.getElementById('hamburger').addEventListener('click', function() {
+            document.getElementById('navbarLinks').classList.toggle('active');
+        });
+
+        // Close menu on link click (mobile)
+        document.querySelectorAll('.navbar-links a').forEach(link => {
+            link.addEventListener('click', function() {
+                if (window.innerWidth <= 768) {
+                    document.getElementById('navbarLinks').classList.remove('active');
+                }
+            });
+        });
+
+        // ==================== INITIALIZE ON LOAD ====================
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                initMatchingMap();
+                loadMatchingData();
+            }, 800);
+        });
+        
+    </script>
+</body>
+</html>

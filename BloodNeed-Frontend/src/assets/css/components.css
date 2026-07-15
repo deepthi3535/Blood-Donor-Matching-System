@@ -1,0 +1,122 @@
+/* BLOOD DROP ICON */
+.blood-drop {
+    width: 50px;
+    height: 50px;
+    background: var(--primary-red);
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    display: inline-block;
+}
+
+/* NOTIFICATION BADGE */
+.notification-badge {
+    position: relative;
+}
+
+.notification-badge .badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: var(--primary-red);
+    color: white;
+    border-radius: 50%;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.7rem;
+}
+
+/* EMERGENCY ALERT */
+.alert-emergency {
+    background: var(--primary-red);
+    color: white;
+    padding: 1rem;
+    border-radius: 10px;
+    animation: flash 1s infinite;
+}
+
+@keyframes flash {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* DONOR CARD */
+.donor-card {
+    border-left: 4px solid var(--primary-red);
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: white;
+    border-radius: 10px;
+}
+
+.donor-card.high-match {
+    border-left-color: var(--success-green);
+}
+
+.donor-card .donor-name {
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.donor-card .donor-details {
+    color: var(--secondary-gray);
+    font-size: 0.9rem;
+}
+
+/* LOADING SPINNER */
+.spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid var(--primary-red);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* TOAST NOTIFICATIONS */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    min-width: 280px;
+    max-width: 400px;
+    padding: 14px 18px;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 500;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    z-index: 10000;
+    animation: slideIn 0.3s ease;
+}
+
+.notification-info {
+    background: #17a2b8;
+}
+
+.notification-success {
+    background: #28a745;
+}
+
+.notification-error {
+    background: #dc3545;
+}
+
+.notification-warning {
+    background: #ffc107;
+    color: #212529;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}

@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard - Blood Need</title>
+    
+    <!-- CSS Files -->
+    <link rel="stylesheet" href="../src/assets/css/style.css">  
+    <link rel="stylesheet" href="../src/assets/css/responsive.css">
+    <link rel="stylesheet" href="../src/assets/css/components.css">
+    <link rel ="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+</head>
+<body>
+
+    <!-- ==================== NAVIGATION ==================== -->
+    <nav class="navbar dashboard-nav">
+        <div class="container">
+            <div class="navbar-brand">
+                <a href="../index.html">
+                    <span class="blood-icon">🩸</span>
+                    Blood <span class="highlight">Need</span>
+                </a>
+            </div>
+            
+            <div class="navbar-links">
+                <a href="dashboard.html" class="active">Dashboard</a>
+                <a href="request-blood.html">Request</a>
+                <a href="donor-matching.html">Matching</a>
+                <div class="notification-wrapper">
+                    <a href="#" class="notification-icon" onclick="toggleNotifications()">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge" id="notifBadge">3</span>
+                    </a>
+                    <div class="notification-dropdown" id="notifDropdown">
+                        <div class="notif-header">Notifications</div>
+                        <div class="notif-item">
+                            <span class="notif-dot"></span>
+                            New blood request in your area
+                        </div>
+                        <div class="notif-item">
+                            <span class="notif-dot"></span>
+                            You earned a new badge!
+                        </div>
+                        <div class="notif-item">
+                            <span class="notif-dot"></span>
+                            Donation drive this weekend
+                        </div>
+                    </div>
+                </div>
+                <div class="profile-dropdown">
+                    <img src="https://ui-avatars.com/api/?name=John+Doe&background=DC3545&color=fff" alt="Profile" class="profile-avatar" />
+                    <div class="dropdown-menu" id="profileMenu">
+                        <a href="#">Profile</a>
+                        <a href="#">Settings</a>
+                        <a href="#" onclick="window.API.auth.logout(); return false;">Logout</a>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="hamburger" id="hamburger">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- ==================== DASHBOARD CONTENT ==================== -->
+    <div class="dashboard-container">
+        <div class="container">
+            <!-- Welcome Section -->
+            <div class="welcome-section">
+                <div>
+                    <h2 class="welcome-message">Welcome back! 👋</h2>
+                    <p id="welcomeSubtext">Loading your dashboard...</p>
+                </div>
+                <div class="availability-toggle" id="availabilitySection">
+                    <label class="switch">
+                        <input type="checkbox" id="availabilityToggle" checked />
+                        <span class="slider"></span>
+                    </label>
+                    <span id="availabilityStatus" class="status-badge available">Available</span>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon red"><i class="fas fa-heart"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-value">12</span>
+                        <span class="stat-label">Total Donations</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon blue"><i class="fas fa-trophy"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-value">850</span>
+                        <span class="stat-label">Points Earned</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon gold"><i class="fas fa-medal"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-value">Silver</span>
+                        <span class="stat-label">Badge Level</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green"><i class="fas fa-clock"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-value">2 min</span>
+                        <span class="stat-label">Avg Response</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="dashboard-grid">
+                <!-- Recent Activity -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3 id="activityTitle">Recent Activity</h3>
+                        <a href="#" class="view-all" id="activityViewAll">View All</a>
+                    </div>
+                    <div class="card-body" id="activityBody">
+                        <div class="activity-item">
+                            <div class="activity-icon">⏳</div>
+                            <div class="activity-info">
+                                <h4>Loading...</h4>
+                                <p>Please wait</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Requests / Matches -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3 id="requestsTitle">My Requests</h3>
+                        <a href="request-blood.html" class="btn-primary btn-sm" id="newRequestBtn">New Request</a>
+                    </div>
+                    <div class="card-body" id="requestsBody">
+                        <div class="request-item">
+                            <div class="request-info">
+                                <span class="blood-tag">--</span>
+                                <div>
+                                    <h4>Loading...</h4>
+                                    <p>Please wait</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <a href="request-blood.html" class="quick-action emergency">
+                    <i class="fas fa-ambulance"></i>
+                    <span>Emergency Request</span>
+                </a>
+                <a href="donor-matching.html" class="quick-action">
+                    <i class="fas fa-search"></i>
+                    <span>Find Donors</span>
+                </a>
+                <a href="#" class="quick-action">
+                    <i class="fas fa-user-edit"></i>
+                    <span>Update Profile</span>
+                </a>
+                <a href="#" class="quick-action">
+                    <i class="fas fa-chart-line"></i>
+                    <span>View Analytics</span>
+                </a>
+            </div>
+
+            <!-- Leaderboard Preview (donor only) -->
+            <div class="dashboard-card" id="leaderboardSection">
+                <div class="card-header">
+                    <h3>🏆 Your Gamification</h3>
+                </div>
+                <div class="card-body" id="leaderboardBody">
+                    <div class="leaderboard-preview">
+                        <div class="leaderboard-item gold">
+                            <span class="rank">Tier</span>
+                            <span class="name" id="gamTier">Bronze</span>
+                            <span class="donations" id="gamPoints">0 points</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../src/assets/js/main.js"></script>
+    <script src="../src/assets/js/utils.js"></script>
+    <script src="../src/assets/js/api.js"></script>
+    <script src="../src/assets/js/interactive.js"></script>
+    <script>
+        function getUserType() {
+            return localStorage.getItem('user_type') || 'donor';
+        }
+
+        function renderEmptyState(container, message, icon = '📋') {
+            container.innerHTML = `
+                <div class="activity-item">
+                    <div class="activity-icon">${icon}</div>
+                    <div class="activity-info">
+                        <h4>${message}</h4>
+                        <p>No records yet</p>
+                    </div>
+                </div>`;
+        }
+
+        function renderRequestItem(req) {
+            const level = (req.emergency_level || 'Normal').toLowerCase();
+            return `
+                <div class="request-item">
+                    <div class="request-info">
+                        <span class="blood-tag">${req.blood_group}</span>
+                        <div>
+                            <h4>${req.hospital_name}</h4>
+                            <p>${req.emergency_level} • ${req.units_needed} unit(s) • ${req.status}</p>
+                        </div>
+                    </div>
+                    <span class="emergency-badge ${level}">${req.emergency_level}</span>
+                </div>`;
+        }
+
+        async function loadDonorDashboard() {
+            document.getElementById('activityTitle').textContent = 'Recent Donations';
+            document.getElementById('requestsTitle').textContent = 'Recent Matches';
+            document.getElementById('newRequestBtn').style.display = 'none';
+            document.getElementById('availabilitySection').style.display = 'flex';
+            document.getElementById('leaderboardSection').style.display = 'block';
+
+            const [profileRes, gamificationRes, historyRes] = await Promise.all([
+                window.API.donor.getProfile(),
+                window.API.donor.getGamification(),
+                window.API.donor.getHistory()
+            ]);
+
+            if (profileRes.success) {
+                const profile = profileRes.data;
+                document.querySelector('.welcome-message').textContent = `Welcome back, ${profile.name}! 👋`;
+                document.getElementById('welcomeSubtext').innerHTML =
+                    `You've saved <strong>${profile.total_donations || 0}</strong> lives so far. Keep up the great work!`;
+
+                const avatar = document.querySelector('.profile-avatar');
+                if (avatar) {
+                    avatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name)}&background=DC3545&color=fff`;
+                }
+
+                const toggle = document.getElementById('availabilityToggle');
+                const status = document.getElementById('availabilityStatus');
+                toggle.checked = profile.is_available;
+                status.textContent = profile.is_available ? 'Available' : 'Not Available';
+                status.className = profile.is_available ? 'status-badge available' : 'status-badge not-available';
+
+                const statValues = document.querySelectorAll('.stat-value');
+                if (statValues[0]) statValues[0].textContent = profile.total_donations || 0;
+            }
+
+            if (gamificationRes.success) {
+                const gam = gamificationRes.data;
+                const statValues = document.querySelectorAll('.stat-value');
+                if (statValues[1]) statValues[1].textContent = gam.points || 0;
+                if (statValues[2]) statValues[2].textContent = gam.tier || 'Bronze';
+                document.getElementById('gamTier').textContent = gam.tier || 'Bronze';
+                document.getElementById('gamPoints').textContent = `${gam.points || 0} points`;
+            }
+
+            const activityBody = document.getElementById('activityBody');
+            if (historyRes.success && historyRes.data.length > 0) {
+                activityBody.innerHTML = historyRes.data.slice(0, 3).map(h => `
+                    <div class="activity-item">
+                        <div class="activity-icon">🩸</div>
+                        <div class="activity-info">
+                            <h4>Donation #${h.history_id}</h4>
+                            <p>Request #${h.request_id} • ${new Date(h.donation_date).toLocaleDateString()}</p>
+                        </div>
+                        <span class="status-badge success">${h.status}</span>
+                    </div>
+                `).join('');
+            } else {
+                renderEmptyState(activityBody, 'No donations yet', '🩸');
+            }
+
+            renderEmptyState(document.getElementById('requestsBody'), 'No active matches', '🔍');
+        }
+
+        async function loadPatientDashboard() {
+            document.getElementById('activityTitle').textContent = 'My Blood Requests';
+            document.getElementById('requestsTitle').textContent = 'Active Requests';
+            document.getElementById('newRequestBtn').style.display = 'inline-flex';
+            document.getElementById('availabilitySection').style.display = 'none';
+            document.getElementById('leaderboardSection').style.display = 'none';
+
+            const storedUser = JSON.parse(localStorage.getItem('user_data') || '{}');
+            document.querySelector('.welcome-message').textContent = `Welcome, ${storedUser.name || 'Patient'}! 👋`;
+            document.getElementById('welcomeSubtext').textContent = 'Manage your blood requests and find matching donors.';
+
+            const avatar = document.querySelector('.profile-avatar');
+            if (avatar && storedUser.name) {
+                avatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(storedUser.name)}&background=DC3545&color=fff`;
+            }
+
+            const requestsRes = await window.API.patient.getRequests();
+            const requests = requestsRes.success ? requestsRes.data : [];
+            const pending = requests.filter(r => r.status === 'Pending' || r.status === 'Processing');
+            const fulfilled = requests.filter(r => r.status === 'Fulfilled');
+
+            const statValues = document.querySelectorAll('.stat-value');
+            if (statValues[0]) statValues[0].textContent = requests.length;
+            if (statValues[1]) statValues[1].textContent = pending.length;
+            if (statValues[2]) statValues[2].textContent = fulfilled.length;
+            if (statValues[3]) statValues[3].textContent = requests[0]?.emergency_level || '—';
+
+            document.querySelectorAll('.stat-label')[0].textContent = 'Total Requests';
+            document.querySelectorAll('.stat-label')[1].textContent = 'Pending';
+            document.querySelectorAll('.stat-label')[2].textContent = 'Fulfilled';
+            document.querySelectorAll('.stat-label')[3].textContent = 'Latest Priority';
+
+            const activityBody = document.getElementById('activityBody');
+            const requestsBody = document.getElementById('requestsBody');
+
+            if (requests.length > 0) {
+                activityBody.innerHTML = requests.slice(0, 3).map(r => `
+                    <div class="activity-item">
+                        <div class="activity-icon">🩸</div>
+                        <div class="activity-info">
+                            <h4>${r.blood_group} at ${r.hospital_name}</h4>
+                            <p>${r.units_needed} unit(s) • ${new Date(r.request_time).toLocaleString()}</p>
+                        </div>
+                        <span class="status-badge ${r.status === 'Pending' ? 'pending' : 'success'}">${r.status}</span>
+                    </div>
+                `).join('');
+
+                const displayRequests = pending.length > 0 ? pending : requests;
+                requestsBody.innerHTML = displayRequests.slice(0, 3).map(renderRequestItem).join('');
+
+                if (requests[0]?.request_id) {
+                    localStorage.setItem('current_request_id', requests[0].request_id);
+                }
+            } else {
+                renderEmptyState(activityBody, 'No blood requests yet', '📋');
+                requestsBody.innerHTML = `
+                    <div class="request-item">
+                        <div class="request-info">
+                            <span class="blood-tag">+</span>
+                            <div>
+                                <h4>No requests yet</h4>
+                                <p>Create your first blood request</p>
+                            </div>
+                        </div>
+                    </div>`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            if (!window.API || !window.API.api) {
+                showNotification('API not loaded. Please refresh the page.', 'error');
+                console.error('API not available:', window.API);
+                return;
+            }
+            
+            const token = window.API.api.getToken();
+            if (!token) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            try {
+                const userType = getUserType();
+                if (userType === 'patient') {
+                    await loadPatientDashboard();
+                } else {
+                    await loadDonorDashboard();
+                }
+            } catch (error) {
+                if (error.status === 401) {
+                    window.location.href = 'login.html';
+                } else {
+                    showNotification('Failed to load dashboard data', 'error');
+                }
+            }
+        });
+        
+        // Availability toggle (donor only)
+        document.getElementById('availabilityToggle').addEventListener('change', async function() {
+            if (getUserType() !== 'donor') return;
+
+            const status = document.getElementById('availabilityStatus');
+            const available = this.checked;
+            
+            try {
+                const response = await window.API.donor.updateAvailability(available);
+                if (response.success) {
+                    status.textContent = available ? 'Available' : 'Not Available';
+                    status.className = available ? 'status-badge available' : 'status-badge not-available';
+                    showNotification(response.message, 'success');
+                }
+            } catch (error) {
+                this.checked = !available;
+                showNotification('Failed to update availability', 'error');
+            }
+        });
+        
+        function toggleNotifications() {
+            document.getElementById('notifDropdown').classList.toggle('show');
+        }
+        
+        document.querySelector('.profile-dropdown').addEventListener('click', function(e) {
+            e.stopPropagation();
+            document.getElementById('profileMenu').classList.toggle('show');
+        });
+        
+        document.addEventListener('click', function() {
+            document.getElementById('notifDropdown').classList.remove('show');
+            document.getElementById('profileMenu').classList.remove('show');
+        });
+    </script>
+</body>
+</html>

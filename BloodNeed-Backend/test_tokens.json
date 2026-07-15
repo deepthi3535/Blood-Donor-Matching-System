@@ -1,0 +1,5 @@
+{
+  "patient_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTc4MzU5MTgxMywianRpIjoiNTdlMWRlNWItMWQ4Yy00YmY3LTlkMTMtMjhkMjEzZGI3ZWUyIiwidHlwZSI6ImFjY2VzcyIsInN1YiI6IjEiLCJuYmYiOjE3ODM1OTE4MTMsImV4cCI6MTc4MzY3ODIxMywidXNlcl90eXBlIjoicGF0aWVudCJ9.EINPoVAcVp4gKWy1sMwPQzoQT9FzfmeDJ9upGaB6JYw",
+  "donor_token": null,
+  "request_id": 2
+}
