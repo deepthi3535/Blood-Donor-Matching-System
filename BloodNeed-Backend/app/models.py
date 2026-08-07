@@ -72,6 +72,33 @@ class Patient(db.Model):
         }
 
 
+class Hospital(db.Model):
+    """Hospital Model"""
+    __tablename__ = 'hospitals'
+    
+    hospital_id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(100), unique=True, nullable=False)
+    phone = db.Column(db.String(15), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    address = db.Column(db.Text, nullable=True)
+    latitude = db.Column(db.DECIMAL(10, 8), nullable=True)
+    longitude = db.Column(db.DECIMAL(11, 8), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'hospital_id': self.hospital_id,
+            'name': self.name,
+            'email': self.email,
+            'phone': self.phone,
+            'address': self.address,
+            'latitude': float(self.latitude) if self.latitude else None,
+            'longitude': float(self.longitude) if self.longitude else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+
 class BloodRequest(db.Model):
     """Blood Request Model"""
     __tablename__ = 'blood_requests'
@@ -118,7 +145,9 @@ class DonorMatch(db.Model):
     response_probability = db.Column(db.DECIMAL(5, 2), nullable=True)
     ranking_score = db.Column(db.DECIMAL(8, 2), nullable=True)
     donor_response = db.Column(db.Enum('Pending', 'Accepted', 'Rejected'), default='Pending')
+    otp = db.Column(db.String(6), nullable=True)
     matched_at = db.Column(db.DateTime, default=datetime.utcnow)
+    response_time_seconds = db.Column(db.Integer, nullable=True)
     
     def to_dict(self):
         return {
@@ -129,7 +158,9 @@ class DonorMatch(db.Model):
             'response_probability': float(self.response_probability) if self.response_probability else None,
             'ranking_score': float(self.ranking_score) if self.ranking_score else None,
             'donor_response': self.donor_response,
-            'matched_at': self.matched_at.isoformat() if self.matched_at else None
+            'matched_at': self.matched_at.isoformat() if self.matched_at else None,
+            'otp': self.otp,
+            'response_time_seconds': self.response_time_seconds
         }
 
 

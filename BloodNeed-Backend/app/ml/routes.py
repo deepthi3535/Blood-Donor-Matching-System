@@ -6,8 +6,40 @@ from app import db
 from app.models import Donor, DonorMatch
 from app.utils.helpers import create_response
 import numpy as np
+import joblib
+import os
+from datetime import datetime
 
 ml_bp = Blueprint('ml', __name__)
+
+# Load ML model
+model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'blood_model.joblib')
+model = None
+if os.path.exists(model_path):
+    try:
+        model = joblib.load(model_path)
+        print("ML model loaded successfully.")
+    except Exception as exc:
+        print(f"Error loading ML model: {exc}")
+
+
+def extract_donor_features(donor):
+    """Extract features for the ML model from Donor attributes"""
+    if donor.last_donation_date:
+        recency = (datetime.utcnow().date() - donor.last_donation_date).days / 30.0
+    else:
+        recency = 20.0 # Default/median recency
+        
+    frequency = donor.total_donations or 0
+    monetary = frequency * 250.0
+    
+    if donor.created_at:
+        time = (datetime.utcnow() - donor.created_at).days / 30.0
+    else:
+        time = 1.0
+    time = max(0.1, time)
+    
+    return [recency, frequency, monetary, time]
 
 
 @ml_bp.route('/predict/<int:donor_id>/<int:request_id>', methods=['GET'])
@@ -22,33 +54,7 @@ def predict_response(donor_id, request_id):
                 message="Donor not found"
             )), 404
 
-        # Calculate response probability based on multiple factors
-        # This is a simplified version - in production, use trained ML model
-        base_probability = 0.5
-        
-        # Factor 1: Response rate history (weight: 0.4)
-        response_rate = float(donor.response_rate or 0)
-        response_score = response_rate / 100
-        
-        # Factor 2: Availability (weight: 0.3)
-        availability_score = 1.0 if donor.is_available else 0.2
-        
-        # Factor 3: Recent donations (weight: 0.2)
-        donation_score = min(donor.total_donations / 10, 1.0)
-        
-        # Factor 4: Time since last donation (weight: 0.1)
-        time_score = 0.8  # Default, would calculate based on last_donation_date
-        
-        # Calculate weighted score
-        probability = (
-            base_probability * 0.2 +
-            response_score * 0.4 +
-            availability_score * 0.3 +
-            donation_score * 0.1
-        )
-        
-        # Ensure probability is between 0 and 1
-        probability = max(0.0, min(1.0, probability))
+        probability = calculate_donor_probability(donor)
         
         return jsonify(create_response(
             success=True,
@@ -56,7 +62,7 @@ def predict_response(donor_id, request_id):
                 'donor_id': donor_id,
                 'request_id': request_id,
                 'response_probability': probability,
-                'confidence': 0.85
+                'confidence': 0.85 if model else 0.50
             },
             message="Response prediction calculated"
         )), 200
@@ -183,24 +189,25 @@ def retrain_model():
 
 def calculate_donor_probability(donor):
     """Helper function to calculate donor response probability"""
+    if model:
+        try:
+            features = extract_donor_features(donor)
+            probability = float(model.predict_proba([features])[0][1])
+            return max(0.0, min(1.0, probability))
+        except Exception:
+            pass
+            
+    # Fallback heuristic
     base_probability = 0.5
-    
-    # Response rate history
     response_rate = float(donor.response_rate or 0)
     response_score = response_rate / 100
-    
-    # Availability
     availability_score = 1.0 if donor.is_available else 0.2
-    
-    # Donation history
     donation_score = min(donor.total_donations / 10, 1.0)
     
-    # Calculate weighted probability
     probability = (
         base_probability * 0.2 +
         response_score * 0.4 +
         availability_score * 0.3 +
         donation_score * 0.1
     )
-    
     return max(0.0, min(1.0, probability))

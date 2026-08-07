@@ -4,7 +4,7 @@ from app import db
 
 def init_db():
     """Initialize database tables"""
-    from app.models import Donor, Patient, BloodRequest, DonorMatch, DonationHistory, Gamification
+    from app.models import Donor, Patient, Hospital, BloodRequest, DonorMatch, DonationHistory, Gamification
     db.create_all()
     print("Database tables created successfully!")
 

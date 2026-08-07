@@ -386,6 +386,45 @@ function closeAllModals() {
     document.querySelectorAll('.modal-overlay').forEach(el => el.remove());
 }
 
+// ---------- REAL-TIME SOCKET.IO NOTIFICATIONS ----------
+function initSocketIO() {
+    if (typeof io !== 'undefined') {
+        try {
+            const socket = io('http://localhost:5000');
+            
+            socket.on('connect', () => {
+                console.log('Connected to real-time notification server.');
+            });
+            
+            socket.on('disconnect', () => {
+                console.log('Disconnected from notification server.');
+            });
+            
+            socket.on('new_emergency_alert', (data) => {
+                console.log('Emergency Alert Received via Socket.IO:', data);
+                const msg = `🚨 EMERGENCY: ${data.blood_group} blood requested at ${data.hospital_name} (${data.urgency_level} urgency)!`;
+                
+                // Show standard notification
+                if (typeof showNotification === 'function') {
+                    showNotification(msg, 'error');
+                }
+                
+                // Simulate browser native notification
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    new Notification('🩸 EMERGENCY Blood Request', {
+                        body: `${data.blood_group} blood requested at ${data.hospital_name} (${data.urgency_level} urgency)`,
+                        icon: '🩸'
+                    });
+                }
+            });
+        } catch (err) {
+            console.error('Socket.IO connection error:', err);
+        }
+    } else {
+        console.log('Socket.IO library not loaded on this page.');
+    }
+}
+
 // ---------- INITIALIZE ALL ----------
 document.addEventListener('DOMContentLoaded', function() {
     // Counter animation
@@ -406,6 +445,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Autocomplete styles
     addAutocompleteStyles();
+    
+    // Real-time notifications connection
+    initSocketIO();
     
     console.log('🩸 Blood Need - Interactive features initialized!');
 });

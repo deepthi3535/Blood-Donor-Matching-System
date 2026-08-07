@@ -3,7 +3,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, get_jwt
 from app import db
-from app.models import Donor, Patient
+from app.models import Donor, Patient, Hospital
 from app.utils.helpers import (
     hash_password, verify_password, validate_email,
     validate_phone, validate_blood_group,
@@ -185,6 +185,84 @@ def register_patient():
         )), 500
 
 
+@auth_bp.route('/register/hospital', methods=['POST'])
+def register_hospital():
+    """Register a new hospital"""
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['name', 'email', 'phone', 'password']
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return jsonify(create_response(
+                    success=False,
+                    message=f"Missing required field: {field}"
+                )), 400
+        
+        # Validate email
+        if not validate_email(data['email']):
+            return jsonify(create_response(
+                success=False,
+                message="Invalid email format"
+            )), 400
+        
+        # Validate phone
+        if not validate_phone(data['phone']):
+            return jsonify(create_response(
+                success=False,
+                message="Invalid phone number (must be 10 digits starting with 6-9)"
+            )), 400
+        
+        # Check if email/phone already exists
+        if email_exists(data['email']):
+            return jsonify(create_response(
+                success=False,
+                message="Email already registered"
+            )), 409
+
+        if phone_exists(data['phone']):
+            return jsonify(create_response(
+                success=False,
+                message="Phone number already registered"
+            )), 409
+        
+        # Create new hospital
+        hospital = Hospital(
+            name=data['name'],
+            email=data['email'],
+            phone=data['phone'],
+            password_hash=hash_password(data['password']),
+            address=data.get('address'),
+            latitude=data.get('latitude'),
+            longitude=data.get('longitude')
+        )
+        
+        db.session.add(hospital)
+        db.session.commit()
+        
+        access_token = create_access_token(
+            identity=create_jwt_identity('hospital', hospital.hospital_id),
+            additional_claims={'user_type': 'hospital'}
+        )
+        
+        return jsonify(create_response(
+            success=True,
+            data={
+                'token': access_token,
+                'user': hospital.to_dict()
+            },
+            message="Hospital registered successfully"
+        )), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(create_response(
+            success=False,
+            message=f"Registration failed: {str(e)}"
+        )), 500
+
+
 @auth_bp.route('/login', methods=['POST'])
 def login():
     """Login user (donor or patient)"""
@@ -210,6 +288,12 @@ def login():
             user = Patient.query.filter_by(email=email).first()
             user_type = 'patient'
             user_id_field = 'patient_id'
+            
+        # If not patient, try hospital
+        if not user:
+            user = Hospital.query.filter_by(email=email).first()
+            user_type = 'hospital'
+            user_id_field = 'hospital_id'
         
         if not user:
             return jsonify(create_response(
@@ -261,6 +345,8 @@ def get_current_user():
             user = Donor.query.get(user_id)
         elif user_type == 'patient':
             user = Patient.query.get(user_id)
+        elif user_type == 'hospital':
+            user = Hospital.query.get(user_id)
         else:
             return jsonify(create_response(
                 success=False,

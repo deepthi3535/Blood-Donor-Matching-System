@@ -166,27 +166,29 @@ def parse_jwt_identity(identity):
 
 
 def email_exists(email):
-    """Check if email is registered as donor or patient."""
-    from app.models import Donor, Patient
+    """Check if email is registered as donor, patient, or hospital."""
+    from app.models import Donor, Patient, Hospital
     return (
         Donor.query.filter_by(email=email).first() is not None
         or Patient.query.filter_by(email=email).first() is not None
+        or Hospital.query.filter_by(email=email).first() is not None
     )
 
 
 def phone_exists(phone):
-    """Check if phone is registered as donor or patient."""
-    from app.models import Donor, Patient
+    """Check if phone is registered as donor, patient, or hospital."""
+    from app.models import Donor, Patient, Hospital
     return (
         Donor.query.filter_by(phone=phone).first() is not None
         or Patient.query.filter_by(phone=phone).first() is not None
+        or Hospital.query.filter_by(phone=phone).first() is not None
     )
 
 
 def get_authenticated_user(expected_type=None):
-    """Resolve the current JWT user as a Donor or Patient model instance."""
+    """Resolve the current JWT user as a Donor, Patient, or Hospital model instance."""
     from flask_jwt_extended import get_jwt_identity, get_jwt
-    from app.models import Donor, Patient
+    from app.models import Donor, Patient, Hospital
 
     user_type, user_id = parse_jwt_identity(get_jwt_identity())
     claims = get_jwt()
@@ -199,5 +201,7 @@ def get_authenticated_user(expected_type=None):
         return Donor.query.get(user_id), user_type, None
     if user_type == 'patient':
         return Patient.query.get(user_id), user_type, None
+    if user_type == 'hospital':
+        return Hospital.query.get(user_id), user_type, None
 
     return None, user_type, "Invalid user type"

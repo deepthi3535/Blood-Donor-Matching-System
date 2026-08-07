@@ -248,6 +248,24 @@
                 document.getElementById('donorFields').style.display = type === 'donor' ? 'block' : 'none';
                 document.getElementById('patientFields').style.display = type === 'patient' ? 'block' : 'none';
                 document.getElementById('registerForm').dataset.userType = type;
+                
+                // Hospital dynamic fields UI adjustment
+                const firstNameInput = document.getElementById('firstName');
+                const lastNameInput = document.getElementById('lastName');
+                const firstNameLabel = firstNameInput.previousElementSibling;
+                const lastNameGroup = lastNameInput.parentElement;
+                
+                if (type === 'hospital') {
+                    firstNameLabel.textContent = 'Hospital Name';
+                    firstNameInput.placeholder = 'City Hospital';
+                    lastNameGroup.style.display = 'none';
+                    lastNameInput.required = false;
+                } else {
+                    firstNameLabel.textContent = 'First Name';
+                    firstNameInput.placeholder = 'John';
+                    lastNameGroup.style.display = 'block';
+                    lastNameInput.required = true;
+                }
             });
         });
         document.getElementById('registerForm').dataset.userType = 'donor';
@@ -337,11 +355,13 @@
                         latitude: userLocation?.lat || null,
                         longitude: userLocation?.lng || null
                     });
-                } else {
-                    showNotification('Hospital registration coming soon!', 'info');
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Create Account';
-                    return;
+                } else if (userType === 'hospital') {
+                    response = await window.API.auth.registerHospital({
+                        name,
+                        email,
+                        phone,
+                        password
+                    });
                 }
                 
                 if (response.success) {

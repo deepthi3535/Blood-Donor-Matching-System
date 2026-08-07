@@ -190,7 +190,13 @@ class AuthAPI {
 
     // Register hospital
     async registerHospital(data) {
-        return this.api.post('/auth/register/hospital', data);
+        const response = await this.api.post('/auth/register/hospital', data);
+        if (response.success && response.data?.token) {
+            this.api.setToken(response.data.token, true);
+            localStorage.setItem('user_type', 'hospital');
+            localStorage.setItem('user_data', JSON.stringify(response.data.user));
+        }
+        return response;
     }
 
     // Logout
@@ -358,7 +364,7 @@ class MatchingAPI {
 
     // Find donors for request
     async findDonors(requestId) {
-        return this.api.get(`/matching/find/${requestId}`);
+        return this.api.post(`/matching/find-donors/${requestId}`);
     }
 
     // Get donor ranking

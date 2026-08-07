@@ -156,3 +156,48 @@ def get_ranking(request_id):
             success=False,
             message=f"Error: {str(e)}"
         )), 500
+
+
+@matching_bp.route('/find-donors/<int:request_id>', methods=['POST'])
+@jwt_required()
+def find_donors_proximity(request_id):
+    """POST endpoint to calculate scores and return sorted prioritized donor list"""
+    try:
+        from app.matching.services import match_and_rank_donors
+        
+        ranked_donors = match_and_rank_donors(request_id)
+        
+        # Broadcast Socket.IO emergency alert
+        try:
+            from app.models import BloodRequest
+            blood_request = BloodRequest.query.get(request_id)
+            if blood_request:
+                from app import socketio
+                socketio.emit('new_emergency_alert', {
+                    'blood_group': blood_request.blood_group,
+                    'urgency_level': blood_request.emergency_level,
+                    'hospital_name': blood_request.hospital_name
+                })
+        except Exception as emit_err:
+            print(f"Error emitting Socket.IO event: {emit_err}")
+        
+        return jsonify(create_response(
+            success=True,
+            data={
+                'request_id': request_id,
+                'total_matched': len(ranked_donors),
+                'donors': ranked_donors
+            },
+            message="Prioritized compatible donor list generated successfully."
+        )), 200
+        
+    except ValueError as val_err:
+        return jsonify(create_response(
+            success=False,
+            message=str(val_err)
+        )), 400
+    except Exception as e:
+        return jsonify(create_response(
+            success=False,
+            message=f"Error: {str(e)}"
+        )), 500

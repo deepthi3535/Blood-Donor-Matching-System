@@ -1,6 +1,6 @@
 # run.py
 
-from app import create_app, db
+from app import create_app, db, socketio
 from app.database import init_db
 
 app = create_app()
@@ -18,4 +18,4 @@ if __name__ == '__main__':
             print("Run: python setup_db.py  (to create database and user)")
             raise SystemExit(1) from exc
 
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    socketio.run(app, debug=True, host='0.0.0.0', port=5000, allow_unsafe_werkzeug=True)

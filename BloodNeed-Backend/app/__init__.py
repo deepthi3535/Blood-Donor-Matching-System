@@ -11,27 +11,42 @@ import os
 # Load environment variables
 load_dotenv()
 
+from flask_socketio import SocketIO
+
 # Initialize extensions
 db = SQLAlchemy()
 migrate = Migrate()
 jwt = JWTManager()
+socketio = SocketIO()
 
 def create_app():
     """Application factory pattern"""
     app = Flask(__name__)
     
     # Configuration
-    app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql+pymysql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}/{os.getenv('DB_NAME')}"
+    db_user = os.getenv('DB_USER')
+    db_password = os.getenv('DB_PASSWORD')
+    db_host = os.getenv('DB_HOST')
+    db_name = os.getenv('DB_NAME')
+    
+    if db_user and db_host and db_name:
+        app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql+pymysql://{db_user}:{db_password or ''}@{db_host}/{db_name}"
+    else:
+        basedir = os.path.abspath(os.path.dirname(__file__))
+        app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(basedir, 'blood_need.db')}"
+        print(f"WARNING: MySQL config incomplete. Falling back to SQLite: {app.config['SQLALCHEMY_DATABASE_URI']}")
+        
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
+    app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'dev-jwt-secret')
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = int(os.getenv('JWT_ACCESS_TOKEN_EXPIRES', 86400))
-    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key')
     
     # Initialize extensions with app
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
     CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
+    socketio.init_app(app, cors_allowed_origins="*")
     
     # Register blueprints (routes)
     from app.auth.routes import auth_bp
@@ -41,6 +56,7 @@ def create_app():
     from app.ml.routes import ml_bp
     from app.gamification.routes import gamification_bp
     from app.notification.routes import notification_bp
+    from app.hospital.routes import hospital_bp
     
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(donor_bp, url_prefix='/api/donor')
@@ -49,6 +65,7 @@ def create_app():
     app.register_blueprint(ml_bp, url_prefix='/api/ml')
     app.register_blueprint(gamification_bp, url_prefix='/api/gamification')
     app.register_blueprint(notification_bp, url_prefix='/api/notifications')
+    app.register_blueprint(hospital_bp, url_prefix='/api/hospital')
     
     @app.route('/')
     def home():
