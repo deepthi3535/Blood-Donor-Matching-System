@@ -345,6 +345,11 @@ class HospitalAPI {
         return this.api.get('/hospital/stats');
     }
 
+    // Get response speed analytics
+    async getResponseStats() {
+        return this.api.get('/hospital/analytics/response-stats');
+    }
+
     // Verify donation
     async verifyDonation(requestId, donorId, otp) {
         return this.api.post('/hospital/verify-donation', { requestId, donorId, otp });

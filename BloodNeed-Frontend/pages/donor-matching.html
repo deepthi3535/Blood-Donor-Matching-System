@@ -374,15 +374,12 @@
                     return;
                 }
                 
-                const [findRes, rankingRes] = await Promise.all([
-                    window.API.matching.findDonors(currentRequestId),
-                    window.API.matching.getRanking(currentRequestId)
-                ]);
+                const findRes = await window.API.matching.findDonors(currentRequestId);
                 
                 if (findRes.success) {
-                    matchedDonors = findRes.data.matched_donors || [];
-                    document.getElementById('matchingCount').textContent = findRes.data.total_donors || 0;
-                    renderDonorCards(rankingRes.success ? rankingRes.data : matchedDonors);
+                    matchedDonors = findRes.data.donors || [];
+                    document.getElementById('matchingCount').textContent = findRes.data.total_matched || 0;
+                    renderDonorCards(matchedDonors);
                     if (map && matchedDonors.length > 0) {
                         const center = currentUserLocation || { lat: defaultCenter[0], lng: defaultCenter[1] };
                         addDonorMarkers(center.lat, center.lng);
@@ -421,9 +418,9 @@
             
             container.innerHTML = donors.map((donor, index) => {
                 const rankLabel = index === 0 ? '⭐ #1' : `#${index + 1}`;
-                const prob = Math.round((donor.response_probability || 0) * 100);
+                const prob = Math.round(donor.response_rate || 0);
                 const distance = donor.distance_km ? `${donor.distance_km.toFixed(1)} km` : 'N/A';
-                const isAvailable = donor.available !== false;
+                const isAvailable = donor.availability_status !== false;
                 
                 return `
                     <div class="donor-card ${index === 0 ? 'top-match' : ''}" data-id="${donor.donor_id}">
@@ -438,12 +435,15 @@
                                 <div class="donor-meta">
                                     <span class="blood-group">${donor.blood_group}</span>
                                     <span class="donor-distance"><i class="fas fa-map-marker-alt"></i> ${distance}</span>
-                                    <span class="donor-rating">Score: ${(donor.ranking_score || 0).toFixed(2)}</span>
+                                    <span class="donor-rating">Score: ${(donor.score || 0).toFixed(2)}</span>
                                 </div>
                             </div>
                         </div>
                         <div class="donor-response">
-                            <span class="response-probability">${prob}% Response Rate</span>
+                            <div style="display:flex;flex-direction:column;align-items:flex-end;margin-bottom:8px;">
+                                <span class="response-probability">${prob}% Response Rate</span>
+                                <span class="card-timer" id="timer-${donor.donor_id}" style="margin-top:4px;font-weight:700;color:#28A745;background:rgba(40,167,69,0.1);padding:4px 8px;border-radius:4px;font-size:12px;">02:00</span>
+                            </div>
                             <div class="response-actions">
                                 <button class="btn-success" onclick="acceptDonor('${donor.name}', ${donor.donor_id})">
                                     <i class="fas fa-check"></i> Accept
@@ -456,6 +456,39 @@
                     </div>
                 `;
             }).join('');
+            
+            // Start card timers
+            startCardTimers();
+        }
+
+        function startCardTimers() {
+            if (window.cardTimerInterval) {
+                clearInterval(window.cardTimerInterval);
+            }
+            const timers = document.querySelectorAll('.card-timer');
+            const timeLimits = {};
+            timers.forEach(t => {
+                timeLimits[t.id] = 120; // 2 minutes
+            });
+            window.cardTimerInterval = setInterval(() => {
+                let active = 0;
+                timers.forEach(t => {
+                    if (timeLimits[t.id] > 0) {
+                        timeLimits[t.id]--;
+                        const min = Math.floor(timeLimits[t.id] / 60);
+                        const sec = timeLimits[t.id] % 60;
+                        t.textContent = `${min}:${sec.toString().padStart(2, '0')}`;
+                        active++;
+                    } else {
+                        t.textContent = "Expired";
+                        t.style.color = "#DC3545";
+                        t.style.background = "rgba(220,53,69,0.1)";
+                    }
+                });
+                if (active === 0) {
+                    clearInterval(window.cardTimerInterval);
+                }
+            }, 1000);
         }
         
         function refreshDonors() {
@@ -715,6 +748,13 @@
 
         // ==================== INITIALIZE ON LOAD ====================
         document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const requestIdParam = urlParams.get('request_id');
+            if (requestIdParam) {
+                currentRequestId = requestIdParam;
+                localStorage.setItem('current_request_id', currentRequestId);
+            }
+            
             setTimeout(() => {
                 initMatchingMap();
                 loadMatchingData();

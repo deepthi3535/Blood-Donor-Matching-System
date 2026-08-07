@@ -359,6 +359,117 @@
             }
         }
 
+        async function loadHospitalDashboard() {
+            document.getElementById('activityTitle').textContent = 'Hospital Requests';
+            document.getElementById('requestsTitle').textContent = 'Actions';
+            document.getElementById('newRequestBtn').href = 'request-blood.html';
+            document.getElementById('newRequestBtn').textContent = 'Create Request';
+            document.getElementById('newRequestBtn').style.display = 'inline-block';
+            document.getElementById('availabilitySection').style.display = 'none';
+            document.getElementById('leaderboardSection').style.display = 'none';
+            
+            // Fetch stats and requests
+            const [statsRes, requestsRes] = await Promise.all([
+                window.API.hospital.getResponseStats(),
+                window.API.hospital.getRequests()
+            ]);
+            
+            // Update stats cards
+            const statValues = document.querySelectorAll('.stat-value');
+            const statLabels = document.querySelectorAll('.stat-label');
+            
+            if (statsRes.success) {
+                const stats = statsRes.data;
+                statValues[0].textContent = stats.total_accepted || 0;
+                statLabels[0].textContent = 'Total Accepted';
+                
+                statValues[1].textContent = `${stats.average_response_time_seconds || 0}s`;
+                statLabels[1].textContent = 'Avg Response Time';
+                
+                statValues[2].textContent = stats.total_rejected || 0;
+                statLabels[2].textContent = 'Total Rejected';
+                
+                statValues[3].textContent = stats.sample_size || 0;
+                statLabels[3].textContent = 'Sample Size';
+            }
+            
+            // Render hospital requests
+            const activityBody = document.getElementById('activityBody');
+            if (requestsRes.success && requestsRes.data.length > 0) {
+                activityBody.innerHTML = requestsRes.data.map(r => {
+                    const level = (r.emergency_level || 'Normal').toLowerCase();
+                    return `
+                        <div class="activity-item">
+                            <div class="activity-icon">🏥</div>
+                            <div class="activity-info">
+                                <h4>${r.blood_group} request for ${r.units_needed} units</h4>
+                                <p>Status: ${r.status} • Level: ${r.emergency_level}</p>
+                            </div>
+                            <span class="emergency-badge ${level}">${r.emergency_level}</span>
+                        </div>
+                    `;
+                }).join('');
+                
+                // Render Actions card
+                const requestsBody = document.getElementById('requestsBody');
+                requestsBody.innerHTML = `
+                    <div class="hospital-verification-box" style="padding:10px 0;">
+                        <h4 style="margin-bottom:10px;">Verify Donor OTP</h4>
+                        <div class="form-group" style="margin-bottom:10px;">
+                            <input type="number" id="verifyRequestId" placeholder="Request ID" class="form-control" style="width:100%;padding:8px;margin-bottom:8px;border:1px solid #ddd;border-radius:4px;" />
+                            <input type="number" id="verifyDonorId" placeholder="Donor ID" class="form-control" style="width:100%;padding:8px;margin-bottom:8px;border:1px solid #ddd;border-radius:4px;" />
+                            <input type="text" id="verifyOtp" placeholder="6-digit OTP" class="form-control" style="width:100%;padding:8px;margin-bottom:8px;border:1px solid #ddd;border-radius:4px;" />
+                        </div>
+                        <button class="btn-primary" onclick="verifyDonorDonation()" style="width:100%;padding:10px;background:#28A745;color:white;border:none;border-radius:4px;cursor:pointer;">
+                            <i class="fas fa-check-circle"></i> Verify Donation
+                        </button>
+                    </div>
+                `;
+            } else {
+                renderEmptyState(activityBody, 'No pending hospital requests', '🏥');
+                document.getElementById('requestsBody').innerHTML = '<p style="color:#6c757d;text-align:center;padding:20px;">No verification actions needed</p>';
+            }
+            
+            // Update profile avatar and name
+            const user_data = JSON.parse(localStorage.getItem('user_data') || '{}');
+            if (user_data.name) {
+                document.querySelector('.welcome-message').textContent = `Welcome, ${user_data.name}! 👋`;
+                document.getElementById('welcomeSubtext').textContent = 'Hospital dashboard. Manage requests and verify donor OTPs.';
+                const avatar = document.querySelector('.profile-avatar');
+                if (avatar) {
+                    avatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user_data.name)}&background=28A745&color=fff`;
+                }
+            }
+        }
+
+        async function verifyDonorDonation() {
+            const requestId = document.getElementById('verifyRequestId').value;
+            const donorId = document.getElementById('verifyDonorId').value;
+            const otp = document.getElementById('verifyOtp').value;
+            
+            if (!requestId || !donorId || !otp) {
+                showNotification('Please fill in all fields', 'warning');
+                return;
+            }
+            
+            try {
+                const response = await window.API.hospital.verifyDonation(
+                    parseInt(requestId),
+                    parseInt(donorId),
+                    otp
+                );
+                
+                if (response.success) {
+                    showNotification(response.message, 'success');
+                    setTimeout(() => { location.reload(); }, 1500);
+                } else {
+                    showNotification(response.message || 'Verification failed', 'error');
+                }
+            } catch (err) {
+                showNotification('Verification failed', 'error');
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', async function() {
             if (!window.API || !window.API.api) {
                 showNotification('API not loaded. Please refresh the page.', 'error');
@@ -376,6 +487,8 @@
                 const userType = getUserType();
                 if (userType === 'patient') {
                     await loadPatientDashboard();
+                } else if (userType === 'hospital') {
+                    await loadHospitalDashboard();
                 } else {
                     await loadDonorDashboard();
                 }

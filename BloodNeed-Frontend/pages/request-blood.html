@@ -286,7 +286,7 @@
                     localStorage.setItem('current_request_id', response.data.request_id);
                     showNotification('Blood request submitted! Finding donors...', 'success');
                     setTimeout(() => {
-                        window.location.href = 'donor-matching.html';
+                        window.location.href = `donor-matching.html?request_id=${response.data.request_id}`;
                     }, 1500);
                 } else {
                     showNotification(response.message || 'Request failed', 'error');
